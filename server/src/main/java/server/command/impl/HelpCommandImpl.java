@@ -5,7 +5,7 @@ import server.command.Command;
 public class HelpCommandImpl implements Command {
 
     @Override
-    public Response execute (String[] args, Object data){
+    public Response execute (String[] args, Object data, String login){
         return new Response("200", "Success",
                "Справка по командам:\n" +
                "help - показать справку\n" +

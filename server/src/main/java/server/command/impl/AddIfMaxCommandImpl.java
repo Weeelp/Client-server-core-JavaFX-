@@ -8,6 +8,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import server.manager.CollectionManager;
+import server.manager.DatabaseManager;
 import server.command.Command;
 import common.Response;
 import common.model.movie.Movie;
@@ -16,14 +17,16 @@ import common.model.movie.MovieData;
 public class AddIfMaxCommandImpl implements Command {
     private static final Logger log = LogManager.getLogger(AddIfMaxCommandImpl.class.getName());
 
-    private final CollectionManager collectionManager;
+    private final CollectionManager cm;
+    private final DatabaseManager db;
 
-    public AddIfMaxCommandImpl(CollectionManager collectionManager) {
-        this.collectionManager = collectionManager;
+    public AddIfMaxCommandImpl(CollectionManager cm, DatabaseManager db) {
+        this.cm = cm;
+        this.db = db;
     }
     @Override
-    public Response execute(String[] args, Object data) {
-        Movie maxMovie = collectionManager.getMaxByOscarsCount();
+    public Response execute(String[] args, Object data, String login) {
+        Movie maxMovie = cm.getMaxByOscarsCount();
         int maxOscars = (maxMovie == null) ? 0 : maxMovie.getOscarsCount();
         
         ObjectMapper mapper = new ObjectMapper();
@@ -41,7 +44,7 @@ public class AddIfMaxCommandImpl implements Command {
         try {
             if (movieData.oscarsCount > maxOscars) {
             Movie movie = new Movie(
-                collectionManager.generateId(),
+                -1,
                 movieData.name,
                 movieData.coordinates,
                 LocalDate.now(),
@@ -49,9 +52,13 @@ public class AddIfMaxCommandImpl implements Command {
                 movieData.totalBoxOffice,
                 movieData.usaBoxOffice,
                 movieData.genre,
-                movieData.screenWriter
+                movieData.screenWriter,
+                login
             );
-            collectionManager.add(movie);
+            
+            db.insertMovieToDb(maxMovie, login);
+            cm.add(maxMovie);
+
             return new Response("201", "Фильм успешно добавлен! ID: " + movie.getId());
         } else {
                 return new Response("400", "Фильм НЕ добавлен: количество Оскаров (" + movieData.oscarsCount +

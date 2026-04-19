@@ -16,7 +16,7 @@ public class PrintDescendingCommandImpl implements Command {
     }
 
     @Override
-    public Response execute(String[] args, Object data) {
+    public Response execute(String[] args, Object data, String login) {
         if (collectionManager.isEmpty()) {
             return new Response("204", "Коллекция пуста. Нечего выводить.");
         }

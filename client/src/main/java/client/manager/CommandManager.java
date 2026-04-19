@@ -6,7 +6,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.channels.SocketChannel;
+import java.net.Socket;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Scanner;
@@ -29,7 +29,7 @@ public class CommandManager {
 
     private static final Set<String> NO_ARGS_COMMANDS = Set.of(
         "show", "info", "clear", "remove_last", "max_by_oscars_count",
-        "print_ascending", "print_descending", "help", "exit", "update"
+        "print_ascending", "print_descending", "help", "exit", "update", "register"
     );
 
     private static final Set<String> ONE_NUM_ARG_COMMANDS = Set.of(
@@ -44,7 +44,7 @@ public class CommandManager {
             return "-";
         }
 
-        if (ONE_NUM_ARG_COMMANDS.contains(command)) {
+        if (ONE_NUM_ARG_COMMANDS.contains(command) && !command.equals("execute_script")) {
             if (args.length != 1) {
                 return "Ошибка: команда " + command + " требует ровно один аргумент (id)";
             }
@@ -85,7 +85,7 @@ public class CommandManager {
         return "Неизвестная команда: " + command;
     }
 
-    public void executeScript(String filename, SocketChannel socket) throws ScriptRecursionException, StopInputException, IOException {
+    public void executeScript(String filename, Socket socket, String login, String password) throws ScriptRecursionException, StopInputException, IOException {
         if (filename == null || filename.isEmpty()) {
             log.info("Укажите имя файла");
             return;
@@ -118,7 +118,7 @@ public class CommandManager {
                     if (args.length == 0) {
                         log.error("Нет имени файла для execute_script");
                     } else {
-                        executeScript(args[0], socket);
+                        executeScript(args[0], socket, login, password);
                     }
                     continue;
                 }
@@ -138,7 +138,7 @@ public class CommandManager {
                         }
                     }
 
-                    Request request = new Request(command, args, data);
+                    Request request = new Request(command, args, data, new String[]{login, password});
                     networkService.sendRequest(socket, request);
                     Response response = networkService.receiveResponse(socket);
 

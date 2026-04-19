@@ -16,7 +16,7 @@ public class InfoCommandImpl implements Command {
     }
 
     @Override
-    public Response execute(String[] args, Object data) {
+    public Response execute(String[] args, Object data, String login) {
 
         LinkedList<Movie> movies = collectionManager.getAll();
         if (movies.isEmpty()) {

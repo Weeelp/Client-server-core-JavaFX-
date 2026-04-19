@@ -5,7 +5,7 @@ import server.command.Command;
 
 public class ExitCommandImpl implements Command{
     @Override
-    public Response execute (String[] args, Object data){
+    public Response execute (String[] args, Object data, String login){
         return new Response("204", "Программа завершена");
     }
     

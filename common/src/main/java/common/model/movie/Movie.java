@@ -1,46 +1,24 @@
 package common.model.movie;
 
-import jakarta.xml.bind.annotation.*;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
 import java.io.Serializable;
 import java.time.LocalDate;
 
-import common.utils.LocalDateAdapter;
 import common.model.person.Person;
 
-@XmlRootElement(name = "movie")
-@XmlAccessorType(XmlAccessType.FIELD)
+
 public class Movie implements Serializable{  
     private static final long serialVersionUID = 1L;
     
-    @XmlElement(required = true)
     private long id;
-
-    @XmlElement(required = true)
     private String name; 
-    
-    @XmlElement(required = true)
     private Coordinates coordinates; 
-    
-    @XmlElement(required = true)
-    @XmlJavaTypeAdapter(LocalDateAdapter.class)
     private LocalDate creationDate;
-    
-    @XmlElement(required = true)
     private int oscarsCount; 
-    
-    @XmlElement(required = true)
     private Double totalBoxOffice; 
-
-    @XmlElement(required = true)
     private Long usaBoxOffice; 
-
-    @XmlElement(required = true)
     private Genre genre; 
-    
-    @XmlElement(required = true, name = "screenwriter")
     private Person screenWriter;
+    private String owner_login;
     
     public Movie() {}
     
@@ -51,7 +29,8 @@ public class Movie implements Serializable{
                 Double totalBoxOffice, 
                 Long usaBoxOffice, 
                 Genre genre, 
-                Person screenWriter) {
+                Person screenWriter,
+                String owner_login) {
         this.id = id;
         this.name = name;
         this.coordinates = coordinates;
@@ -61,6 +40,7 @@ public class Movie implements Serializable{
         this.usaBoxOffice = usaBoxOffice;
         this.genre = genre;
         this.screenWriter = screenWriter;
+        this.owner_login = owner_login;
     }
     
     public long getId (){ return this.id; }
@@ -81,6 +61,10 @@ public class Movie implements Serializable{
 
     public Person getScreenWriter (){ return this.screenWriter; }
 
+    public String getOwner_login (){ return this.owner_login; }
+
+    public void setId (long id){ this.id = id; }
+
     public void setName (String name){ this.name = name; }
     
     public void setCreationDate (LocalDate creationDate){ this.creationDate = creationDate; }
@@ -96,6 +80,8 @@ public class Movie implements Serializable{
     public void setGenre (Genre genre){ this.genre = genre; }
 
     public void setScreenWriter (Person screenWriter){ this.screenWriter = screenWriter;}
+
+    public void setOwner_login (String owner_login){ this.owner_login = owner_login; }
 
     @Override
     public String toString() {

@@ -6,7 +6,10 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.sql.SQLException;
+
 import server.manager.CollectionManager;
+import server.manager.DatabaseManager;
 import server.command.Command;
 import common.Response;
 import common.model.movie.Movie;
@@ -15,14 +18,17 @@ import common.model.movie.MovieData;
 public class UpdateByIdCommandImpl implements Command {
     private static final Logger log = LogManager.getLogger(UpdateByIdCommandImpl.class.getName());
 
-    private final CollectionManager collectionManager;
+    private final CollectionManager cm;
+    private final DatabaseManager db;
+
     
-    public UpdateByIdCommandImpl(CollectionManager collectionManager) {
-        this.collectionManager = collectionManager;
+    public UpdateByIdCommandImpl(CollectionManager cm, DatabaseManager db) {
+        this.cm = cm;
+        this.db = db;
     }
 
     @Override
-    public Response execute(String[] args, Object data) {
+    public Response execute(String[] args, Object data, String login) {
         ObjectMapper mapper = new ObjectMapper();
 
         MovieData movieData;
@@ -42,7 +48,7 @@ public class UpdateByIdCommandImpl implements Command {
             return new Response("400","id должен быть числом");
         }
         
-        Movie movie = collectionManager.findById(id);
+        Movie movie = cm.findById(id);
         if (movie == null) {
             log.info("Фильм с id " + id + " не найден");
             return new Response("404","Фильм с id " + id + " не найден");
@@ -51,6 +57,12 @@ public class UpdateByIdCommandImpl implements Command {
         try {
             log.info("Редактирование фильма ID " + id);
             log.info("Текущее название: " + movie.getName());
+
+            try {
+                db.updateMovie(id, movie, login);
+            } catch (SQLException e){
+                return new Response("500" , "Ошибка обновления");
+            }
     
             movie.setName(movieData.name);
             movie.setCoordinates(movieData.coordinates);

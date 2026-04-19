@@ -2,18 +2,11 @@ package common.model.movie;
 
 import java.io.Serializable;
 
-import jakarta.xml.bind.annotation.*;
-
-@XmlAccessorType(XmlAccessType.FIELD)
 public class Coordinates implements Serializable {
     private static final long serialVersionUID = 1L;
-    
-    @XmlAttribute(required = true)
     private long x;
-    
-    @XmlAttribute(required = true)
     private float y;
-    
+
     public Coordinates() {}
     
     public Coordinates(long x, float y) {

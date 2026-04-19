@@ -1,32 +1,33 @@
 package server.command.impl;
 
 import server.manager.CollectionManager;
+import server.manager.DatabaseManager;
+import server.command.Command;
 
 import java.time.LocalDate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import server.command.Command;
 import common.Response;
 import common.model.movie.Movie;
 import common.model.movie.MovieData;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 public class AddCommandImpl implements Command {
     private static final Logger log = LogManager.getLogger(AddCommandImpl.class.getName());
-    private final CollectionManager collectionManager;
+    private final DatabaseManager db;
+    private final CollectionManager cm;
+
     
-    public AddCommandImpl(CollectionManager collectionManager) {
-        this.collectionManager = collectionManager;
+    public AddCommandImpl(CollectionManager cm, DatabaseManager db) {
+        this.cm = cm;
+        this.db = db;
     }
 
    @Override
-    public Response execute(String[] args, Object data) {
+    public Response execute(String[] args, Object data, String login) {
         ObjectMapper mapper = new ObjectMapper();
 
         log.info(String.valueOf(data));
@@ -41,7 +42,7 @@ public class AddCommandImpl implements Command {
 
         try {
             Movie movie = new Movie(
-                collectionManager.generateId(),
+                -1,
                 movieData.name,
                 movieData.coordinates,
                 LocalDate.now(),
@@ -49,9 +50,14 @@ public class AddCommandImpl implements Command {
                 movieData.totalBoxOffice,
                 movieData.usaBoxOffice,
                 movieData.genre,
-                movieData.screenWriter
+                movieData.screenWriter,
+                login
             );
-            collectionManager.add(movie);
+       
+            long newId = db.insertMovieToDb(movie, login);
+            movie.setId(newId);
+            cm.add(movie);
+
             return new Response("201", "Фильм успешно добавлен! ID: " + movie.getId());
         } catch (Exception e) {
             log.error("Ошибка: " + e.getMessage());

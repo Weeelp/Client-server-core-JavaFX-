@@ -5,7 +5,7 @@
 
     <parent>
         <groupId>org.example</groupId>
-        <artifactId>lab5prog</artifactId>
+        <artifactId>lab_7</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     
@@ -15,6 +15,12 @@
             <artifactId>common</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+    
+      <dependency>
+        <groupId>com.google.android</groupId>
+        <artifactId>android</artifactId>
+        <version>4.1.1.4</version>
+      </dependency>
     </dependencies>
 
     <build>
