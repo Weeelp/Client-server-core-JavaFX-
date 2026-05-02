@@ -1,0 +1,14 @@
+client
+client.controller
+client.manager
+client.network
+common
+common.exceptions
+common.model.movie
+common.model.person
+common.utils.validator
+server
+server.command
+server.command.impl
+server.manager
+server.utils
