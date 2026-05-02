@@ -1,5 +1,3 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-mvn -pl client compile exec:java
-
-ssh -p 2222 s503308@helios.cs.ifmo.ru
+mvn -pl client compile javafx:run

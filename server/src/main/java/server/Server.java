@@ -7,7 +7,10 @@ import java.nio.channels.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
@@ -31,6 +34,7 @@ public class Server {
     private static final ExecutorService senderPool = Executors.newFixedThreadPool(10);
 
     private static Selector selector;
+    private static final Set<SelectionKey> activeKeys = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public static void main(String[] args) throws IOException {
         collectionManager = new CollectionManager();
@@ -62,7 +66,9 @@ public class Server {
                         if (key.isAcceptable()) {
                             SocketChannel client = serverChannel.accept();
                             client.configureBlocking(false);
-                            client.register(selector, SelectionKey.OP_READ, new ClientAttachment());
+                            SelectionKey clientKey  = client.register(selector, SelectionKey.OP_READ, new ClientAttachment());
+                            
+                            activeKeys.add(clientKey);
                             log.info("Клиент подключился: {}", client.getRemoteAddress());
                         }
 
@@ -111,34 +117,35 @@ public class Server {
     private static void handleClientRequest(SocketChannel client, byte[] rawData, SelectionKey key) {
         try {
             ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
             Request request = mapper.readValue(new String(rawData, StandardCharsets.UTF_8), Request.class);
             log.info("Обработка команды: {}", request.getCommand());
 
             final Response response; 
-            List<String> openCommands = Arrays.asList("register", "help", "exit");
+            List<String> openCommands = Arrays.asList("register", "auth");
             
             if (!openCommands.contains(request.getCommand())) {
                 String login = request.getUser()[0];
                 String pass = request.getUser()[1];
 
                 if (!databaseManager.checkAuth(login, pass)) {
-                    response = new Response("401", "Ошибка авторизации");
+                    response = new Response("401", "Ошибка авторизации", false);
                 } else if (request.getCommand().equals("update_permission")) {
                     Response tempResponse;
                     try {
                         if (request.getArgs() == null || request.getArgs().length == 0) {
-                            tempResponse = new Response("400", "Missing movie ID");
+                            tempResponse = new Response("400", "Missing movie ID", false);
                         } else {
                             long id = Long.parseLong(request.getArgs()[0]);
                             if (databaseManager.checkPermissionById(id, login)) {
-                                tempResponse = new Response("200", "Access granted");
+                                tempResponse = new Response("200", "Access granted", false);
                             } else {
-                                tempResponse = new Response("403", "Forbidden: You are not the owner");
+                                tempResponse = new Response("403", "Forbidden: You are not the owner", false);
                             }
                         }
                     } catch (NumberFormatException e) {
                         log.error("Permission warning: {}", e.getMessage());
-                        tempResponse = new Response("400", "Invalid ID format");
+                        tempResponse = new Response("400", "Invalid ID format", false);
                     }
                     response = tempResponse;
                 } else {
@@ -148,8 +155,19 @@ public class Server {
                 response = (Response) commandManager.executeCommand(request.getCommand(), request.getArgs(), request.getData(), "");
             }
 
-
             senderPool.execute(() -> handleWrite(client, response, key, mapper));
+
+            if (response.getUpdate()) {
+                
+                Response updateResponse = new Response("200", "Обновление", collectionManager.getAll(), true);
+                
+                for (SelectionKey targetKey : activeKeys) {
+                    if (targetKey.isValid() && targetKey != key) { 
+                        SocketChannel targetChannel = (SocketChannel) targetKey.channel();
+                        senderPool.execute(() -> handleWrite(targetChannel, updateResponse, targetKey, mapper));
+                    }
+                }
+            }
 
         } catch (Exception e) {
             log.error("Ошибка обработки: {}", e.getMessage());
@@ -183,6 +201,7 @@ public class Server {
     private static void closeClient(SelectionKey key) {
         try {
             log.info("Клиент отключен" + ((SocketChannel) key.channel()).getRemoteAddress());
+            activeKeys.remove(key);
             key.channel().close();
             key.cancel();
         } catch (IOException ignored) {}

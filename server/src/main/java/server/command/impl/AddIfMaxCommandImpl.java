@@ -38,7 +38,7 @@ public class AddIfMaxCommandImpl implements Command {
         } catch (Exception e) {
             log.info(String.valueOf(mapper.convertValue(data, MovieData.class)));
             log.error("400: Ошибка: неверный формат данных для команды add");
-            return new Response("400", "Ошибка: неверный формат данных для команды add");
+            return new Response("400", "Ошибка: неверный формат данных для команды add", false);
         }
         
         try {
@@ -56,17 +56,18 @@ public class AddIfMaxCommandImpl implements Command {
                 login
             );
             
-            db.insertMovieToDb(maxMovie, login);
-            cm.add(maxMovie);
+            long newId = db.insertMovieToDb(movie, login);
+            movie.setId(newId);
+            cm.add(movie);
 
-            return new Response("201", "Фильм успешно добавлен! ID: " + movie.getId());
+            return new Response("201", "Фильм успешно добавлен! ID: " + movie.getId(), true);
         } else {
                 return new Response("400", "Фильм НЕ добавлен: количество Оскаров (" + movieData.oscarsCount +
-                        ") не превышает текущий максимум (" + maxOscars + ").");
+                        ") не превышает текущий максимум (" + maxOscars + ").", false);
             }
         } catch (Exception e) {
             log.error(">> Непредвиденная ошибка: " + e.getMessage());
-            return new Response("404", "Непредвиденная ошибка: " + e.getMessage());
+            return new Response("404", "Непредвиденная ошибка: " + e.getMessage(), false);
         }
     }
 }

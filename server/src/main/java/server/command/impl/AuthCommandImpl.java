@@ -9,12 +9,11 @@ import org.apache.logging.log4j.Logger;
 import common.Response;
 
 
-public class RegisterCommandImpl implements Command {
+public class AuthCommandImpl implements Command {
     private static final Logger log = LogManager.getLogger(RegisterCommandImpl.class.getName());
     private final DatabaseManager db;
-
     
-    public RegisterCommandImpl(DatabaseManager db) {
+    public AuthCommandImpl(DatabaseManager db) {
         this.db = db;
     }
 
@@ -26,9 +25,11 @@ public class RegisterCommandImpl implements Command {
 
        try{
         log.info(String.valueOf(args));
-            db.createUser(args[1], args[0]);
+         if (db.checkAuth(args[1], args[0])){
+            return new Response("201", "Пользователь успешно авторизовался login: " + args[1], false);
+         } else return new Response("400", "Пользователь не найден: " + args[1], false);
 
-            return new Response("201", "Пользователь успешно добавлен! login: " + args[1], false);
+            
         } catch (Exception e) {
             log.error("Ошибка: " + e.getMessage());
             return new Response("404", "Ошибка: " + e.getMessage(), false);

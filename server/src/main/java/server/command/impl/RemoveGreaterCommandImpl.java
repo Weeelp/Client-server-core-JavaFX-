@@ -19,25 +19,25 @@ public class RemoveGreaterCommandImpl implements Command {
     @Override
     public Response execute(String[] args, Object data, String login) {
         if (collectionManager.isEmpty()) {
-            return new Response("204","Коллекция пуста. Нечего удалять.");
+            return new Response("204","Коллекция пуста. Нечего удалять.", false);
         }
 
         if (args == null || args.length == 0) {
-            return new Response("400","Не указано id фильма!");
+            return new Response("400","Не указано id фильма!", false);
         }
 
         if (args.length > 1) {
-            return new Response("400","Слишком много аргументов, неверный ввод");
+            return new Response("400","Слишком много аргументов, неверный ввод", false);
         } 
         
         long id;
         try {
             id = Long.parseLong(args[0]);
             if (id <= 0) {
-                return new Response("400","Ошибка: id должен быть положительным числом.");
+                return new Response("400","Ошибка: id должен быть положительным числом.", false);
             }
         } catch (NumberFormatException e) {
-            return new Response("400","Ошибка: id должен быть целым числом.");
+            return new Response("400","Ошибка: id должен быть целым числом.", false);
         }
 
         int oldSize = collectionManager.size();
@@ -45,7 +45,7 @@ public class RemoveGreaterCommandImpl implements Command {
         try {
             removed =  db.deleteMoviesGreaterThan(id, login);
         } catch (SQLException e){
-            return new Response("500" , "Ошибка удаления. У вас нет прав");
+            return new Response("500" , "Ошибка удаления. У вас нет прав", false);
         }
         removed&=collectionManager.removeGreaterThan(id);
         
@@ -53,10 +53,10 @@ public class RemoveGreaterCommandImpl implements Command {
         int removedCount = oldSize - newSize;
 
         if (removed && removedCount > 0) {
-            return new Response("204", "> Удалено фильмов с id больше " + id + ": " + removedCount + "\n" +
-                   "> В коллекции осталось фильмов: " + newSize + "\n");
+            return new Response("200", "> Удалено фильмов с id больше " + id + ": " + removedCount + "\n" +
+                   "> В коллекции осталось фильмов: " + newSize + "\n", true);
         } else {
-            return new Response("404", "Фильмов с id больше " + id + " не найдено.");
+            return new Response("404", "Фильмов с id больше " + id + " не найдено.", false);
         }
     }
 }

@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.sql.SQLException;
+import java.util.LinkedList;
 
 import server.manager.CollectionManager;
 import server.manager.DatabaseManager;
@@ -37,7 +38,7 @@ public class UpdateByIdCommandImpl implements Command {
         } catch (Exception e) {
             log.info(String.valueOf(mapper.convertValue(data, MovieData.class)));
             log.error("400: Ошибка: неверный формат данных для команды add");
-            return new Response("400", "Ошибка: неверный формат данных для команды add");
+            return new Response("400", "Ошибка: неверный формат данных для команды add", false);
         }
  
         long id;
@@ -45,13 +46,13 @@ public class UpdateByIdCommandImpl implements Command {
             id = Long.parseLong(args[0]);
         } catch (NumberFormatException e) {
             log.info("> id должен быть числом");
-            return new Response("400","id должен быть числом");
+            return new Response("400","id должен быть числом", false);
         }
         
         Movie movie = cm.findById(id);
         if (movie == null) {
             log.info("Фильм с id " + id + " не найден");
-            return new Response("404","Фильм с id " + id + " не найден");
+            return new Response("404","Фильм с id " + id + " не найден", false);
         }
         
         try {
@@ -61,7 +62,7 @@ public class UpdateByIdCommandImpl implements Command {
             try {
                 db.updateMovie(id, movie, login);
             } catch (SQLException e){
-                return new Response("500" , "Ошибка обновления");
+                return new Response("500" , "Ошибка обновления", false);
             }
     
             movie.setName(movieData.name);
@@ -72,10 +73,11 @@ public class UpdateByIdCommandImpl implements Command {
             movie.setGenre(movieData.genre);
             movie.setScreenWriter(movieData.screenWriter);
 
-            return new Response("200","Фильм успешно обновлен! ID: " + movie.getId());
+            LinkedList<Movie> movies = cm.getAll();
+            return new Response("200","Фильм успешно обновлен! ID: " + movie.getId(), movies, true);
         } catch (Exception e) {
             log.error("Ошибка: " + e.getMessage());
-            return new Response("500","Ошибка: " + e.getMessage());
+            return new Response("500","Ошибка: " + e.getMessage(), false);
         }
     }
 }
