@@ -6,6 +6,7 @@
 *.zip
 *.tar.gz
 *.rar
+*.env
 
 target/
 pom.xml.tag
@@ -23,8 +24,6 @@ script.sh
 script1.sh
 xmlCreater.py
 
-runс
-runs
 app.log
 *.md
 cat > .gitignore << 'EOF'
@@ -34,7 +33,6 @@ cat > .gitignore << 'EOF'
 log/
 *.log
 
-# OS
 .DS_Store
 Thumbs.db
 

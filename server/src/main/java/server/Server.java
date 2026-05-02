@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import common.*;
+import common.utils.*;
 import server.manager.*;
 
 public class Server {
@@ -48,11 +49,11 @@ public class Server {
         commandManager = new CommandManager(collectionManager, databaseManager);
 
         try (ServerSocketChannel serverChannel = ServerSocketChannel.open()) {
-            serverChannel.bind(new InetSocketAddress(8000));
+            serverChannel.bind(new InetSocketAddress(Config.getPort()));
             serverChannel.configureBlocking(false);
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-            log.info("Сервер запущен, порт 8000...");
+            log.info("Сервер запущен, порт: ", Config.getPort());
 
             while (true) {
                 if (selector.select(100) > 0) {

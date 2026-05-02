@@ -35,40 +35,54 @@ public class NetworkWorker extends Thread {
     }
 
     @Override
-    public void run() {
-        while (running) {
-            try {
-                boolean connected = networkService.tryConnect();
-                Platform.runLater(() -> guiApp.updateStatus(connected));
+public void run() {
+    while (running) {
+        try {
+            boolean connected = networkService.tryConnect();
+            Platform.runLater(() -> guiApp.updateStatus(connected));
 
-                if (connected) {
-                    RequestTask task = queue.poll(500, java.util.concurrent.TimeUnit.MILLISECONDS);
-                    if (task != null) {
-                        networkService.sendRequest(task.request);
-                        Response resp = networkService.receiveResponse();
-                        Platform.runLater(() -> task.callback.accept(resp));
-                        
-                        log.info(resp.getStatus() + ": " + resp.getMessage() );
-                    }
+            if (connected) {
+                RequestTask task = queue.poll(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+                if (task != null) {
                     try {
-                        networkService.getSocket().setSoTimeout(300);
-                        Response updateResp = networkService.receiveResponse();
-                        if (updateResp.getUpdate() && updateResp != null) {
-                            handleUpdate(updateResp);
+                        networkService.sendRequest(task.request);
+                        Response resp = networkService.receiveResponse(); 
+                        if (resp != null) {
+                            Platform.runLater(() -> task.callback.accept(resp));
+                            log.info(resp.getStatus() + ": " + resp.getMessage());
                         }
-                    } catch (java.net.SocketTimeoutException ignored) {}
-                } else {
-                    System.err.println("Ошибка: Попытка отправить запрос без соединения.");
+                    } catch (Exception e) {
+                        log.error("Ошибка запроса: " + e.getMessage());
+                        networkService.close();
+                    }
                 }
-            } catch (InterruptedException e) {
-                running = false;
-                break;
-            } catch (Exception e) {
-                System.err.println("Ошибка в цикле воркера: " + e.getMessage());
-                Platform.runLater(() -> guiApp.updateStatus(false));
+
+                try {
+                    Response updateResp = networkService.receiveResponse(300); 
+                    
+                    if (updateResp != null && updateResp.getUpdate()) {
+                        handleUpdate(updateResp);
+                    }
+                } catch (java.net.SocketTimeoutException ignored) {
+                } catch (Exception e) {
+                    log.warn("Ошибка фонового чтения: " + e.getMessage());
+                    networkService.close();
+                }
+            } else {
+                Thread.sleep(2000); 
             }
+        } catch (InterruptedException e) {
+            running = false;
+        } catch (Exception e) {
+            String msg = (e.getMessage() != null) ? e.getMessage() : e.getClass().getSimpleName();
+            System.err.println("Ошибка в цикле воркера: " + msg);
+            Platform.runLater(() -> guiApp.updateStatus(false));
+            
+            try { Thread.sleep(2000); } catch (InterruptedException ex) { running = false; }
         }
     }
+}
+
 
     private void handleUpdate(Response resp) {
         Platform.runLater(() -> {

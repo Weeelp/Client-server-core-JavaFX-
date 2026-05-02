@@ -8,6 +8,7 @@ import java.util.List;
 import server.utils.hashSHA_384;
 import common.model.movie.*;
 import common.model.person.*;
+import common.utils.Config;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,12 +18,8 @@ public class DatabaseManager {
 
     private Connection connection;
 
-    private final String url = "jdbc:postgresql://localhost:5432/lab7";
-    private final String user = "postgres";
-    private final String password = "1234";
-
     public DatabaseManager(CollectionManager cl) throws SQLException {
-        this.connection = DriverManager.getConnection(url, user, password);
+        this.connection = DriverManager.getConnection(Config.getDbUrl(), Config.getDbUser(), Config.getDbPassword());
         cl.setMovies(loadCollection());
         log.info("Подключение к БД успешно!");
     }
@@ -220,45 +217,4 @@ public class DatabaseManager {
             }
         }
     }
-    
-    // public void saveToDb(List<Movie> movies, String ownerLogin) throws SQLException {
-    // for (Movie movie : movies) {
-    //     String personSql = "INSERT INTO person (name, height, eye_color, hair_color, nationality) " +
-    //                        "VALUES (?, ?, ?::person_eye_color, ?::person_hair_color, ?::person_nationality) RETURNING id";
-        // scp -P 2222 /home/ls/user/uni/1curs/2sem/prog/5lab/ITMO_prog_lab7/tools/script.sh s503308@helios.cs.ifmo.ru:
-
-    //     int personId;
-    //     try (PreparedStatement ps = connection.prepareStatement(personSql)) {
-    //         Person p = movie.getScreenWriter();
-    //         ps.setString(1, p.getName());
-    //         ps.setInt(2, p.getHeight());
-    //         ps.setString(3, p.getEyeColor().toString());
-    //         ps.setString(4, p.getHairColor().toString());
-    //         ps.setString(5, p.getNationality().toString());
-            
-    //         ResultSet rs = ps.executeQuery();
-    //         rs.next();
-    //         personId = rs.getInt(1);
-    //     }
-
-    //     String movieSql = "INSERT INTO movies (name, x, y, creation_date, oscars_count, " +
-    //                       "total_box_office, usa_box_office, genre, screenwriter_id, owner_login) " +
-    //                       "VALUES (?, ?, ?, ?, ?, ?, ?, ?::movie_genre, ?, ?)";
-        
-    //     try (PreparedStatement ps = connection.prepareStatement(movieSql)) {
-    //         ps.setString(1, movie.getName());
-    //         ps.setLong(2, movie.getCoordinates().getX());
-    //         ps.setFloat(3, movie.getCoordinates().getY());
-    //         ps.setDate(4, java.sql.Date.valueOf(movie.getCreationDate()));
-    //         ps.setInt(5, movie.getOscarsCount());
-    //         ps.setDouble(6, movie.getTotalBoxOffice());
-    //         ps.setLong(7, movie.getUsaBoxOffice());
-    //         ps.setString(8, movie.getGenre().toString());
-    //         ps.setInt(9, personId);
-    //         ps.setString(10, ownerLogin); 
-            
-    //         ps.executeUpdate();
-    //     }
-    //         }
-    //     }
 }
