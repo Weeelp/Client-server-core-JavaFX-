@@ -25,7 +25,6 @@ script1.sh
 xmlCreater.py
 
 app.log
-*.md
 cat > .gitignore << 'EOF'
 
 .vscode/
