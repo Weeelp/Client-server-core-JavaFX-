@@ -1,4 +1,4 @@
-package client;
+package client.guiApp.impl;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -21,14 +21,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import client.controller.AuthController;
 import client.controller.MovieDataController;
+import client.guiApp.GuiApp;
 import client.manager.*;
 import client.network.*;
 import common.Request;
@@ -36,7 +39,7 @@ import common.model.movie.*;
 import common.model.person.*;
 import common.utils.validator.MovieValidator;
 
-public class GuiApp extends Application {
+public class GuiAppJavaFX extends Application implements GuiApp{
     private static final Logger log = LogManager.getLogger(GuiApp.class.getName());
 
     private NetworkService networkService;
@@ -44,16 +47,18 @@ public class GuiApp extends Application {
     private AuthManager authManager = new AuthManager(null, null);
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
+    private ResourceBundle bundle;
+    private Locale currentLocale = new Locale("ru");
+
     private Stage primaryStage;
     private VBox layout;
     private TableView<Movie> mainTable;
 
-    private ResourceBundle bundle;
-    private Locale currentLocale = new Locale("ru");
-
     private Label statusLabel = new Label();
     private Label ownerLabel = new Label();
-    private Button addBtn, addIfMaxBtn, logoutBtn;
+    private Button addBtn = new Button();
+    private Button addIfMaxBtn = new Button();
+    private Button logoutBtn = new Button();
     private TableColumn<Movie, Long> idCol;
     private TableColumn<Movie, String> nameCol, genreCol, ownerCol;
     private TableColumn<Movie, String> dateCol;
@@ -66,11 +71,37 @@ public class GuiApp extends Application {
 
     private LinkedList<Movie> safeList = new LinkedList<>();
 
+    @Override
+    public void start(Stage primaryStage) throws IOException {
+        this.primaryStage = primaryStage;
+        this.bundle = ResourceBundle.getBundle("lang.gui", currentLocale);
+        this.networkService = new NetworkService();
+        networkService.tryConnect();
+        startNetworkWorker();
+
+        if (networkService.tryConnect() && networkService.getSocket() != null) {
+            log.info("Соединение установлено. Порт: " + networkService.getSocket().getLocalPort());
+        } else {
+            log.warn("Не удалось подключиться к серверу. Работа в оффлайн режиме.");
+        }
+
+        showAuthWindow(primaryStage);
+    }
+
+    @Override
     public void startNetworkWorker() {
         if (this.worker == null) {
             this.worker = new NetworkWorker(this.networkService, this, mapper);
             this.worker.start();
         }
+    }
+
+    @Override
+    public NetworkWorker getWorker() { return worker; }
+
+    @Override
+    public void runOnUIThread(Runnable action) {
+        Platform.runLater(action);
     }
 
     private void updateTexts() {
@@ -109,10 +140,23 @@ public class GuiApp extends Application {
         ));
         filterColumn.setValue(bundle.getString("filter_name"));
 
-        langChooser.setItems(FXCollections.observableArrayList("Русский", "English"));
-        langChooser.setValue(currentLocale.getLanguage().equals("ru") ? "Русский" : "English");
+        langChooser.setItems(FXCollections.observableArrayList("Русский", "English", "Srpski", "Ελληνικά", "Español (DO)"));
+        String language = currentLocale.getLanguage();
+        String country = currentLocale.getCountry();
+        if (language.equals("ru")) {
+            langChooser.setValue("Русский");
+        } else if (language.equals("sr")) {
+            langChooser.setValue("Srpski");
+        } else if (language.equals("el")) {
+            langChooser.setValue("Ελληνικά");
+        } else if (language.equals("es") && country.equals("DO")) {
+            langChooser.setValue("Español (DO)");
+        } else {
+            langChooser.setValue("English");
+        }
     }
-
+    
+    @Override
     public void updateTableData(LinkedList<Movie> newList) {
         if (newList == null) return;
         this.safeList = newList;
@@ -124,20 +168,7 @@ public class GuiApp extends Application {
         }
     }
 
-    public NetworkWorker getWorker() { return worker; }
-
     @Override
-    public void start(Stage primaryStage) throws IOException {
-        this.primaryStage = primaryStage;
-        this.bundle = ResourceBundle.getBundle("lang.gui", currentLocale);
-        this.networkService = new NetworkService();
-        networkService.tryConnect();
-        startNetworkWorker();
-        log.info("Инициализация работы клиента: " + networkService.getSocket().getLocalPort());
-
-        showAuthWindow(primaryStage);
-    }
-
     public void updateStatus(boolean isOnline) {
         if (isOnline) {
             statusLabel.setText(bundle.getString("status_online"));
@@ -146,6 +177,10 @@ public class GuiApp extends Application {
             statusLabel.setText(bundle.getString("status_offline"));
             statusLabel.setStyle("-fx-text-fill: red;");
         }
+    }
+
+    public void showMainWindow(LinkedList<Movie> movies){
+        showMainWindow(primaryStage, movies);
     }
 
     public void showMainWindow(Stage stage, LinkedList<Movie> movies) {
@@ -252,7 +287,7 @@ public class GuiApp extends Application {
                 field = "owner";
             } else if (col.equals(bundle.getString("filter_genre"))) {
                 field = "genre";
-            } else if (col.equals(bundle.getString("filter_total_box"))) {   // <-- добавить
+            } else if (col.equals(bundle.getString("filter_total_box"))) {
                 field = "totalBoxOffice";
             }
             List<Movie> filtered = MovieDataController.filter(safeList, field, newVal);
@@ -261,27 +296,39 @@ public class GuiApp extends Application {
 
         langChooser.setOnAction(e -> {
             String selected = langChooser.getValue();
-            if (selected.equals("Русский")) {
-                currentLocale = new Locale("ru");
-            } else {
-                currentLocale = new Locale("en");
+            if (selected == null) return;
+            switch (selected) {
+                case "Русский":
+                    currentLocale = new Locale("ru");
+                    break;
+                case "English":
+                    currentLocale = new Locale("en");
+                    break;
+                case "Srpski":
+                    currentLocale = new Locale("sr");
+                    break;
+                case "Ελληνικά":
+                    currentLocale = new Locale("el");
+                    break;
+                case "Español (DO)":
+                    currentLocale = new Locale("es", "DO");
+                    break;
+                default:
+                    currentLocale = new Locale("en");
+                    break;
             }
-            bundle = ResourceBundle.getBundle("gui.lang", currentLocale);
+            bundle = ResourceBundle.getBundle("lang.gui", currentLocale);
             updateTexts();
             updateStatus(networkService.tryConnect());
         });
 
-        addBtn = new Button();
         addBtn.setOnAction(e -> showMovieForm(null, stage, 1));
-        addIfMaxBtn = new Button();
         addIfMaxBtn.setOnAction(e -> showMovieForm(null, stage, 2));
-        logoutBtn = new Button();
         logoutBtn.setOnAction(e -> {
             authManager.setLogin(null);
             showAuthWindow(stage);
         });
 
-        ownerLabel = new Label();
         HBox controls = new HBox(10, filterInput, filterColumn, sortOptions, langChooser, ownerLabel);
         HBox bottom = new HBox(15, logoutBtn, addBtn, addIfMaxBtn);
         this.layout = new VBox(15, statusLabel, controls, mainTable, bottom);
@@ -305,7 +352,12 @@ public class GuiApp extends Application {
         VBox buttonBox = new VBox(10, loginBtn, toRegBtn);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
 
-        AuthController controller = new AuthController(this, stage, authManager, loginField, passField);
+        AuthController controller = new AuthController(
+            this,
+            authManager, 
+            () -> loginField.getText(), 
+            () -> passField.getText()
+        );
 
         toRegBtn.setOnAction(e -> showRegistrationWindow(stage));
         loginBtn.setOnAction(event -> controller.handleAuth("auth"));
@@ -328,8 +380,12 @@ public class GuiApp extends Application {
         VBox buttonBox = new VBox(10, regBtn, toAuthBtn);
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
 
-        AuthController controller = new AuthController(this, stage, authManager, loginField, passField);
-
+        AuthController controller = new AuthController(
+            this,
+            authManager, 
+            () -> loginField.getText(), 
+            () -> passField.getText()
+        );
         toAuthBtn.setOnAction(e -> showAuthWindow(stage));
         regBtn.setOnAction(event -> controller.handleAuth("register"));
 
@@ -529,7 +585,7 @@ public class GuiApp extends Application {
         formStage.show();
     }
 
-    private void showError(String message) {
+    public void showError(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(bundle.getString("error_title"));
         alert.setHeaderText(null);

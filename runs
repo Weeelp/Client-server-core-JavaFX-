@@ -1,0 +1,3 @@
+#!/bin/bash
+cd "$(dirname "$0")"
+mvn -pl server compile exec:java -Dexec.mainClass="server.Main"

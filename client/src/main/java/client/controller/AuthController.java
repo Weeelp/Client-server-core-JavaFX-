@@ -1,17 +1,13 @@
 package client.controller;
 
-import javafx.application.Platform;
-import javafx.scene.control.Alert;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.stage.Stage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.LinkedList;
+import java.util.function.Supplier;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import client.GuiApp;
+import client.guiApp.GuiApp;
 import client.manager.AuthManager;
 import client.network.NetworkWorker;
 import common.Request;
@@ -20,22 +16,20 @@ import common.model.movie.Movie;
 
 public class AuthController {
     private GuiApp guiApp;
-    private Stage stage;
-    private TextField loginField;
-    private PasswordField passField;
+    private Supplier<String> loginSupplier;
+    private Supplier<String> passSupplier;
     private AuthManager authManager;
 
-    public AuthController(GuiApp guiApp, Stage stage, AuthManager authManager, TextField loginField, PasswordField passField) {
+    public AuthController(GuiApp guiApp, AuthManager authManager, Supplier<String> loginSupplier, Supplier<String> passSupplier) {
         this.authManager = authManager;
         this.guiApp = guiApp;
-        this.stage = stage;
-        this.loginField = loginField;
-        this.passField = passField;
+        this.loginSupplier = loginSupplier;
+        this.passSupplier = passSupplier;
     }
 
     public void handleAuth(String event) {
-        String login = loginField.getText();
-        String pass = passField.getText();
+        String login = loginSupplier.get();
+        String pass = passSupplier.get();
 
         if (guiApp.getWorker() == null) {
             guiApp.startNetworkWorker();
@@ -44,7 +38,7 @@ public class AuthController {
         NetworkWorker worker  = guiApp.getWorker();
      
         if (login.isEmpty() || pass.isEmpty()) {
-            showError("Введите логин и пароль!");
+            guiApp.showError("Введите логин и пароль!");
             return;
         }
      
@@ -68,23 +62,15 @@ public class AuthController {
                         showResp.getData(), 
                         new TypeReference<LinkedList<Movie>>() {}
                     );
-                    Platform.runLater(() -> {
-                    System.out.println("Открываю главное окно..."); 
-                    guiApp.showMainWindow(stage, movies);
-                });
+
+                    guiApp.runOnUIThread(() -> {
+                        guiApp.showMainWindow(movies);
+                    });
                 });
             } else {
-                showError("Ошибка: " + resp.getMessage());
+                guiApp.showError("Ошибка: " + resp.getMessage());
             }
         });
-    }
-
-    private void showError(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Ошибка");
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 }
 

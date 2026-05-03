@@ -1,7 +1,5 @@
 package client.network;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import java.util.LinkedList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -9,10 +7,12 @@ import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import client.GuiApp;
+import client.guiApp.GuiApp;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import common.*;
 import common.model.movie.Movie;
-import javafx.application.Platform;
 
 public class NetworkWorker extends Thread {
     private static final Logger log = LogManager.getLogger(NetworkWorker.class.getName());
@@ -35,57 +35,57 @@ public class NetworkWorker extends Thread {
     }
 
     @Override
-public void run() {
-    while (running) {
-        try {
-            boolean connected = networkService.tryConnect();
-            Platform.runLater(() -> guiApp.updateStatus(connected));
+    public void run() {
+        while (running) {
+            try {
+                boolean connected = networkService.tryConnect();
+                guiApp.runOnUIThread(() -> guiApp.updateStatus(connected));
 
-            if (connected) {
-                RequestTask task = queue.poll(100, java.util.concurrent.TimeUnit.MILLISECONDS);
-                if (task != null) {
-                    try {
-                        networkService.sendRequest(task.request);
-                        Response resp = networkService.receiveResponse(); 
-                        if (resp != null) {
-                            Platform.runLater(() -> task.callback.accept(resp));
-                            log.info(resp.getStatus() + ": " + resp.getMessage());
+                if (connected) {
+                    RequestTask task = queue.poll(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+                    if (task != null) {
+                        try {
+                            networkService.sendRequest(task.request);
+                            Response resp = networkService.receiveResponse(); 
+                            if (resp != null) {
+                                guiApp.runOnUIThread(() -> task.callback.accept(resp));
+                                log.info(resp.getStatus() + ": " + resp.getMessage());
+                            }
+                        } catch (Exception e) {
+                            log.error("Ошибка запроса: " + e.getMessage());
+                            networkService.close();
                         }
+                    }
+
+                    try {
+                        Response updateResp = networkService.receiveResponse(300); 
+                        
+                        if (updateResp != null && updateResp.getUpdate()) {
+                            handleUpdate(updateResp);
+                        }
+                    } catch (java.net.SocketTimeoutException ignored) {
                     } catch (Exception e) {
-                        log.error("Ошибка запроса: " + e.getMessage());
+                        log.warn("Ошибка фонового чтения: " + e.getMessage());
                         networkService.close();
                     }
+                } else {
+                    Thread.sleep(2000); 
                 }
-
-                try {
-                    Response updateResp = networkService.receiveResponse(300); 
-                    
-                    if (updateResp != null && updateResp.getUpdate()) {
-                        handleUpdate(updateResp);
-                    }
-                } catch (java.net.SocketTimeoutException ignored) {
-                } catch (Exception e) {
-                    log.warn("Ошибка фонового чтения: " + e.getMessage());
-                    networkService.close();
-                }
-            } else {
-                Thread.sleep(2000); 
+            } catch (InterruptedException e) {
+                running = false;
+            } catch (Exception e) {
+                String msg = (e.getMessage() != null) ? e.getMessage() : e.getClass().getSimpleName();
+                System.err.println("Ошибка в цикле воркера: " + msg);
+                guiApp.runOnUIThread(() -> guiApp.updateStatus(false));
+                
+                try { Thread.sleep(2000); } catch (InterruptedException ex) { running = false; }
             }
-        } catch (InterruptedException e) {
-            running = false;
-        } catch (Exception e) {
-            String msg = (e.getMessage() != null) ? e.getMessage() : e.getClass().getSimpleName();
-            System.err.println("Ошибка в цикле воркера: " + msg);
-            Platform.runLater(() -> guiApp.updateStatus(false));
-            
-            try { Thread.sleep(2000); } catch (InterruptedException ex) { running = false; }
         }
     }
-}
 
 
     private void handleUpdate(Response resp) {
-        Platform.runLater(() -> {
+        guiApp.runOnUIThread(() -> {
             try {
                 LinkedList<Movie> newList = mapper.convertValue(
                     resp.getData(), 
