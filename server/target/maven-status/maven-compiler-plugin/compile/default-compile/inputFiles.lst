@@ -1,0 +1,15 @@
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/utils/hashSHA_384.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/manager/CommandManager.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/AddIfMaxCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/UpdateByIdCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/ShowCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/RemoveGreaterCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/Command.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/manager/DatabaseManager.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/utils/MovieComparators.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/manager/CollectionManager.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/RegisterCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/AddCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/AuthCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/command/impl/RemovedByIdCommandImpl.java
+/home/ls/user/uni/1curs/2sem/prog/ITMO_prog_lab8/server/src/main/java/server/Server.java

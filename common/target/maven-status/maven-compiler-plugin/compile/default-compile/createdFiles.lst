@@ -1,0 +1,15 @@
+common/exceptions/ScriptRecursionException.class
+common/model/movie/Movie.class
+common/model/movie/MovieData.class
+common/model/person/HairColor.class
+common/exceptions/ValidationException.class
+common/exceptions/StopInputException.class
+common/Request.class
+common/exceptions/ExitException.class
+common/model/movie/Coordinates.class
+common/utils/validator/MovieValidator.class
+common/model/person/Person.class
+common/model/person/EyeColor.class
+common/model/movie/Genre.class
+common/model/person/Country.class
+common/Response.class

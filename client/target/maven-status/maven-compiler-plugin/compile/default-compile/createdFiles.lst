@@ -1,0 +1,9 @@
+client/network/NetworkWorker.class
+client/network/NetworkService.class
+client/Main.class
+client/controller/AuthController$1.class
+client/controller/MovieDataController.class
+client/network/NetworkWorker$RequestTask.class
+client/manager/AuthManager.class
+client/network/NetworkWorker$1.class
+client/controller/AuthController.class

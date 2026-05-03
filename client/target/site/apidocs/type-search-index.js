@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes","url":"allclasses-index.html"},{"p":"client.controller","l":"AuthController"},{"p":"client.manager","l":"AuthManager"},{"p":"client","l":"GuiApp"},{"p":"client","l":"Main"},{"p":"client.controller","l":"MovieDataController"},{"p":"client.network","l":"NetworkService"},{"p":"client.network","l":"NetworkWorker"}]
