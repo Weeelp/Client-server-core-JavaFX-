@@ -84,4 +84,4 @@ mvn exec:java -pl client -Dexec.mainClass="client.Main"
 ## Документация
 
 Подробное описание архитектуры, классов и методов доступно по ссылке:
-[**Посмотреть JavaDoc**](https://Weeelp.github.io/ITMO_prog_lab5/)
+[**Посмотреть JavaDoc**](https://Weeelp.github.io/Client-server-core)
