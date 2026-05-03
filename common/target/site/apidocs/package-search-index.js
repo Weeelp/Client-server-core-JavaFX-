@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","url":"allpackages-index.html"},{"l":"common"},{"l":"common.exceptions"},{"l":"common.model.movie"},{"l":"common.model.person"},{"l":"common.utils.validator"}]
