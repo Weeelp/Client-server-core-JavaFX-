@@ -34,6 +34,8 @@ DB_PASSWORD=password
 
 ---
 
+**GUI frameworks** Есть варианты выбора JavaFX / Swing. Дефолтным стоит JavaFX. Его можно поменять в client/Main.java
+
 ## Технологический стек
 
 *   **Язык:** Java 17+
