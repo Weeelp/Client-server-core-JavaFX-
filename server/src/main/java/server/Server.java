@@ -53,7 +53,7 @@ public class Server {
             serverChannel.configureBlocking(false);
             selector = Selector.open();
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
-            log.info("Сервер запущен, порт: ", Config.getPort());
+            log.info("Сервер запущен, порт: "+ Config.getPort());
 
             while (true) {
                 if (selector.select(100) > 0) {

@@ -1,5 +1,18 @@
 package client.guiApp.impl;
 
+import java.io.IOException;
+
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
+
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -7,8 +20,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.canvas.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
@@ -16,11 +28,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
+import javafx.stage.StageStyle;
+import javafx.util.Duration;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -162,7 +171,7 @@ public class GuiAppJavaFX extends Application implements GuiApp{
         this.safeList = newList;
         if (mainTable != null) {
             Platform.runLater(() -> {
-                mainTable.setItems(FXCollections.observableArrayList(safeList));
+                mainTable.getItems().setAll(FXCollections.observableArrayList(safeList));
                 mainTable.refresh();
             });
         }
@@ -183,8 +192,14 @@ public class GuiAppJavaFX extends Application implements GuiApp{
         showMainWindow(primaryStage, movies);
     }
 
+    @SuppressWarnings("unchecked")
     public void showMainWindow(Stage stage, LinkedList<Movie> movies) {
+        DateTimeFormatter dtf = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM);
         this.safeList = (movies == null) ? new LinkedList<>() : movies;
+        if (this.layout != null) {
+            updateTableData(movies);
+            return;
+        }
         this.mainTable = new TableView<>(FXCollections.observableArrayList(safeList));
 
         idCol = new TableColumn<>();
@@ -194,17 +209,35 @@ public class GuiAppJavaFX extends Application implements GuiApp{
         nameCol.setCellValueFactory(new PropertyValueFactory<>("name"));
 
         dateCol = new TableColumn<>();
-        dateCol.setCellValueFactory(cell -> javafx.beans.binding.Bindings.createObjectBinding(() ->
-                cell.getValue().getCreationDate().toString()));
-
+        dateCol.setCellValueFactory(cell -> {
+            var date = cell.getValue().getCreationDate();
+            return javafx.beans.binding.Bindings.createStringBinding(
+                () -> date != null ? date.format(dtf.withLocale(currentLocale)) : ""
+            );
+        });
+        
         oscarsCol = new TableColumn<>();
         oscarsCol.setCellValueFactory(new PropertyValueFactory<>("oscarsCount"));
 
         totalBoxOfficeCol = new TableColumn<>();
         totalBoxOfficeCol.setCellValueFactory(new PropertyValueFactory<>("totalBoxOffice"));
+        totalBoxOfficeCol.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Double value, boolean empty) {
+                super.updateItem(value, empty);
+                if (empty || value == null) setText(null);
+                else setText(NumberFormat.getInstance(currentLocale).format(value));
+            }
+        });
 
         usaBoxOfficeCol = new TableColumn<>();
         usaBoxOfficeCol.setCellValueFactory(new PropertyValueFactory<>("usaBoxOffice"));
+        usaBoxOfficeCol.setCellFactory(tc -> new TableCell<>() {
+            @Override protected void updateItem(Long value, boolean empty) {
+                super.updateItem(value, empty);
+                if (empty || value == null) setText(null);
+                else setText(NumberFormat.getInstance(currentLocale).format(value));
+            }
+        });
 
         genreCol = new TableColumn<>();
         genreCol.setCellValueFactory(new PropertyValueFactory<>("genre"));
@@ -222,7 +255,7 @@ public class GuiAppJavaFX extends Application implements GuiApp{
                 deleteBtn.setOnAction(event -> {
                     Movie m = getTableView().getItems().get(getIndex());
                     Request req = new Request("remove_by_id", new String[]{String.valueOf(m.getId())}, null, new String[]{authManager.getLogin(), authManager.getPassword()});
-                    worker.addTask(req, resp -> {});
+                    worker.addTask(req, resp -> {updateTableData(movies);});
                 });
             }
             @Override
@@ -319,6 +352,7 @@ public class GuiAppJavaFX extends Application implements GuiApp{
             }
             bundle = ResourceBundle.getBundle("lang.gui", currentLocale);
             updateTexts();
+            mainTable.refresh(); 
             updateStatus(networkService.tryConnect());
         });
 
@@ -400,9 +434,16 @@ public class GuiAppJavaFX extends Application implements GuiApp{
         if (movie == null) return;
 
         Stage cardStage = new Stage();
+        cardStage.initStyle(StageStyle.UNDECORATED);
         cardStage.initModality(Modality.WINDOW_MODAL);
         cardStage.initOwner(mainTable.getScene().getWindow());
         cardStage.setTitle(bundle.getString("movie_card_title"));
+
+        cardStage.setOpacity(0);
+        Timeline fadeIn = new Timeline(
+            new KeyFrame(Duration.ZERO, new KeyValue(cardStage.opacityProperty(), 0)),
+            new KeyFrame(Duration.millis(500), new KeyValue(cardStage.opacityProperty(), 1.0))
+        );
 
         String currentUser = authManager.getLogin();
         boolean isOwner = currentUser != null && currentUser.equals(movie.getOwner_login());
@@ -455,6 +496,7 @@ public class GuiAppJavaFX extends Application implements GuiApp{
         Scene scene = new Scene(root, canvasWidth, canvasHeight);
         cardStage.setScene(scene);
         cardStage.show();
+        fadeIn.play();
     }
 
     private void drawCloseButton(GraphicsContext gc, double canvasWidth) {

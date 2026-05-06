@@ -1,5 +1,8 @@
 package client.guiApp.impl;
 
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -11,16 +14,17 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableModel;
 
+import java.awt.event.*;
 import java.awt.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.FlatClientProperties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import client.controller.AuthController;
 import client.controller.MovieDataController;
@@ -78,6 +82,7 @@ public class GuiAppSwing extends JFrame implements GuiApp {
         setVisible(true); 
     }
 
+    @Override
     public void startNetworkWorker() {
         if (this.worker == null) {
             this.worker = new NetworkWorker(this.networkService, this, mapper);
@@ -85,7 +90,19 @@ public class GuiAppSwing extends JFrame implements GuiApp {
         }
     }
 
+    @Override
     public NetworkWorker getWorker() { return worker; }
+
+    @Override
+    public void updateStatus(boolean isOnline) {
+        if (isOnline) {
+            statusLabel.setText(bundle.getString("status_online"));
+            statusLabel.setForeground(Color.GREEN);
+        } else {
+            statusLabel.setText(bundle.getString("status_offline"));
+            statusLabel.setForeground(Color.RED);
+        }
+    }
 
     private void updateTexts() {
         ownerLabel.setText(bundle.getString("user_label") + ": " + (authManager.getLogin() != null ? authManager.getLogin() : "Unknown"));
@@ -104,6 +121,7 @@ public class GuiAppSwing extends JFrame implements GuiApp {
                 mainTable.getColumnModel().getColumn(i).setHeaderValue(bundle.getString(columnKeys[i]));
             }
             mainTable.getTableHeader().repaint();
+            updateTableData(safeList);
         }
 
         sortOptions.setModel(new DefaultComboBoxModel<>(new String[]{
@@ -135,17 +153,6 @@ public class GuiAppSwing extends JFrame implements GuiApp {
             langChooser.setSelectedItem("Español (DO)");
         } else {
             langChooser.setSelectedItem("English");
-        }
-    }
-
-
-    public void updateStatus(boolean isOnline) {
-        if (isOnline) {
-            statusLabel.setText(bundle.getString("status_online"));
-            statusLabel.setForeground(Color.GREEN);
-        } else {
-            statusLabel.setText(bundle.getString("status_offline"));
-            statusLabel.setForeground(Color.RED);
         }
     }
 
@@ -274,14 +281,21 @@ public class GuiAppSwing extends JFrame implements GuiApp {
         runOnUIThread(() -> {
             this.safeList = newList;
             tableModel.setRowCount(0);
+
+            NumberFormat nf = NumberFormat.getInstance(currentLocale);
+            DateTimeFormatter df = DateTimeFormatter
+            .ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+            .withLocale(currentLocale);
+
             for (Movie m : newList) {
+                if (m == null) continue;
                 tableModel.addRow(new Object[]{
                     m.getId(),
                     m.getName(),
-                    m.getCreationDate(),
+                    m.getCreationDate() != null ? m.getCreationDate().format(df) : "",
                     m.getOscarsCount(),
-                    m.getTotalBoxOffice(),
-                    m.getUsaBoxOffice(),
+                    m.getTotalBoxOffice() != null ? nf.format(m.getTotalBoxOffice()) : "",
+                    m.getUsaBoxOffice() != null ? nf.format(m.getUsaBoxOffice()) : "",
                     m.getGenre(),
                     m.getOwner_login()
                 });
@@ -291,10 +305,6 @@ public class GuiAppSwing extends JFrame implements GuiApp {
 
     public JTable getMainTable() {
         return this.mainTable;
-    }
-
-    public LinkedList<Movie> getSafeList () {
-        return safeList;
     }
 
     @Override
@@ -475,6 +485,9 @@ public class GuiAppSwing extends JFrame implements GuiApp {
     private void openMovieCard(Movie movie) {
         JDialog dialog = new JDialog(this, bundle.getString("movie_card_title"), true);
         dialog.setUndecorated(true); 
+
+        dialog.setOpacity(0.0f); 
+
         JPanel canvas = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -507,9 +520,9 @@ public class GuiAppSwing extends JFrame implements GuiApp {
             }
         };
 
-        canvas.addMouseListener(new java.awt.event.MouseAdapter() {
+        canvas.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
+            public void mouseClicked(MouseEvent e) {
                 int x = e.getX();
                 int y = e.getY();
                 int w = canvas.getWidth();
@@ -531,6 +544,22 @@ public class GuiAppSwing extends JFrame implements GuiApp {
         dialog.add(canvas);
         dialog.pack();
         dialog.setLocationRelativeTo(this);
+
+        Timer timer = new Timer(10, null);
+        timer.addActionListener(e -> {
+            float nextOpacity = dialog.getOpacity() + 0.05f;
+            if (nextOpacity >= 1.0f) {
+                dialog.setOpacity(1.0f);
+                timer.stop();
+            } else {
+                dialog.setOpacity(nextOpacity);
+            }
+        });
+
+        SwingUtilities.invokeLater(() -> {
+            timer.start();
+        });
+
         dialog.setVisible(true);
     }
 
@@ -550,7 +579,6 @@ public class GuiAppSwing extends JFrame implements GuiApp {
         g2.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
         g2.drawString(bundle.getString("btn_edit"), w - 115, 45);
     }
-
 
     public void showMovieForm(Movie movieToEdit, int level) {
         JDialog dialog = new JDialog(this, 
@@ -655,10 +683,13 @@ public class GuiAppSwing extends JFrame implements GuiApp {
         dialog.setVisible(true);
     }
 
-
     @Override
     public void runOnUIThread(Runnable action) {
         SwingUtilities.invokeLater(action);
+    }
+
+    public LinkedList<Movie> getSafeList () {
+        return safeList;
     }
 
     @Override
